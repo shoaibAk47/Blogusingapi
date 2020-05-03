@@ -5,9 +5,10 @@ from rest_framework.validators import UniqueValidator
 
 
 class ArticleSerializer(serializers.ModelSerializer):
+    owner = serializers.ReadOnlyField(source='owner.username')
     class Meta:
         model=Article
-        fields=['id','title','author','email','date']
+        fields=['id','title','author','email','date','owner']
         #if you want all fields you can do fields='__all__'
 
 
@@ -19,14 +20,9 @@ class RegisterSerializer(serializers.ModelSerializer):
         model=User
         fields=['first_name','last_name','username','email','password']
 
-def check(User):
-    user = authenticate(request, username=username, password=password)
-    if user is not None:
-        login(request, user)
-class LoginSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
+    articles=serializers.PrimaryKeyRelatedField(many=True,queryset=Article.objects.all())
+
     class Meta:
-        model=User
-        fields=['username','password']
-        validators=[
-            check
-        ]
+        model= User
+        fields=['id','username','articles']

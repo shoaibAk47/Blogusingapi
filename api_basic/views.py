@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from rest_framework.parsers import JSONParser
 from .models import Article
-from .serializers import ArticleSerializer, RegisterSerializer, LoginSerializer
+from .serializers import ArticleSerializer, RegisterSerializer, UserSerializer
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -14,49 +14,25 @@ from django.contrib.auth import authenticate, login
 from rest_framework.authtoken.models import Token
 from rest_framework import generics,mixins
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication, TokenAuthentication
-from rest_framework.permissions import IsAuthenticated
-class GenericAPIView(generics.GenericAPIView, mixins.ListModelMixin, 
-            mixins.CreateModelMixin,mixins.UpdateModelMixin,
-            mixins.RetrieveModelMixin,mixins.DestroyModelMixin):
-    serializer_class=ArticleSerializer
-    queryset=Article.objects.all()
-
-    lookup_field='id'
-    authentication_classes=[SessionAuthentication, BasicAuthentication,TokenAuthentication]
-    permission_classes=[IsAuthenticated]
-    def get(self,request,id=None):
-        if id:
-            return self.retrieve(request)
-        else:
-            return self.list(request)
-
-    def post(self, request):
-        return self.create(request)
-
-    def put(self, request, id=None):
-        return self.update(request, id)
-
-    def delete(self,request, id):
-        return self.destroy(request,id)
-
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 
 class ArticleAPIView(APIView):
+    permission_classes=[IsAuthenticated]
     def get(self, request):
         articles=Article.objects.all()
         serializer=ArticleSerializer(articles,many=True)
         return Response(serializer.data)
-
     def post(self, request):
         serializer=ArticleSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(owner=request.user)
             return Response(serializer.data,status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 # Create your views here.
-
 class ArticleDetails(APIView):
+    permission_classes=[IsAuthenticated]
     def get_object(self,id):
         try:
             return Article.objects.get(id=id)
@@ -83,6 +59,14 @@ class ArticleDetails(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class UserList(generics.ListAPIView):
+    queryset=User.objects.all()
+    serializer_class=UserSerializer
+
+class UserDetail(generics.RetrieveAPIView):
+    queryset=User.objects.all()
+    serializer_class=UserSerializer 
+
 
 #function based views--------------
 
@@ -105,14 +89,6 @@ def ShowUser(request):
     user=User.objects.all()
     serializer=RegisterSerializer(user,many=True)
     return Response(serializer.data)
-
-@api_view(['POST'])
-def log_in(request):
-    serializer=LoginSerializer(data=request.data)
-    if serializer.is_valid():
-        return Response(serializer.data,status=status.HTTP_201_CREATED)
-    else:
-        return Response(serializer.errors)
 
 @api_view(['GET','POST'])
 def article_list(request):
