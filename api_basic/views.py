@@ -15,6 +15,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework import generics,mixins
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication, TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from .permissions import IsAuthenticatedAndOwner
 
 class ArticleAPIView(APIView):
     permission_classes=[IsAuthenticated]
@@ -30,12 +31,13 @@ class ArticleAPIView(APIView):
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
-# Create your views here.
 class ArticleDetails(APIView):
     permission_classes=[IsAuthenticated]
     def get_object(self,id):
         try:
-            return Article.objects.get(id=id)
+            obj=Article.objects.get(id=id)
+            self.check_object_permissions(self.request, obj)
+            return obj
         except Article.DoesNotExist:
             return HttpResponse(status=status.HTTP_404_NOT_FOUND)
 
