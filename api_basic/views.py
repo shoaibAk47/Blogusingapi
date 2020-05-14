@@ -32,7 +32,7 @@ class ArticleAPIView(APIView):
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 class ArticleDetails(APIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticated, IsAuthenticatedAndOwner]
     def get_object(self,id):
         try:
             obj=Article.objects.get(id=id)

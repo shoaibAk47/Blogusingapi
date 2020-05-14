@@ -15,20 +15,15 @@ class RegisterSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(validators=[UniqueValidator(queryset=User.objects.all())])
     username = serializers.CharField(validators=[UniqueValidator(queryset=User.objects.all())])
     password = serializers.CharField(write_only=True)
-    confirm_password = serializers.CharField(write_only=True)
     class Meta:
         model=User
         fields=['first_name','last_name','username','email','password','confirm_password']
 
-        def validate(self, data):
-            if not data.get('password') or not data.get('confirm_password'):
-                raise serializers.ValidationError("Please enter a password and "
-                    "confirm it.")
-
-            if data.get('password') != data.get('confirm_password'):
-                raise serializers.ValidationError("Those passwords don't match.")
-
-            return data
+    def create(self, validated_data):
+        user = super().create(validated_data)
+        user.set_password(validated_data['password'])
+        user.save()
+        return user 
 
 class UserSerializer(serializers.ModelSerializer):
     articles=serializers.PrimaryKeyRelatedField(many=True,queryset=Article.objects.all())
